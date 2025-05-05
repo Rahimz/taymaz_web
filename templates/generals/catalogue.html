@@ -7,6 +7,9 @@
 
 {% block content %}
 {% if catalogue %}
+<div class="bg-secondary text-center py-3">
+  <a href="{{catalogue.file.url}}" class="btn btn-dark " download>دانلود فایل کاتالوگ ({{ catalogue.filesize }})</a>
+</div>
 {% for image in catalogue.images.all %}
   <div>
     <img src="{{ image.image.url }}" alt="" width="100%" height="auto">

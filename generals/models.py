@@ -6,6 +6,8 @@ from PIL import Image
 import io
 import os
 from django.core.files.base import ContentFile
+from django.utils.functional import cached_property
+
 from tools.models import TimeStampedModel
 
 
@@ -25,6 +27,24 @@ class Catalogue(TimeStampedModel):
     
     def __str__(self):
         return self.name
+
+    @cached_property
+    def filesize(self):
+        """
+        Returns the file's size in a human-readable format.
+        """
+        if self.file:
+            try:
+                size_bytes = self.file.size
+                # Convert to human-readable format
+                for unit in ['bytes', 'KB', 'MB', 'GB']:
+                    if size_bytes < 1024.0:
+                        return f"{size_bytes:.1f} {unit}"
+                    size_bytes /= 1024.0
+                return f"{size_bytes:.1f} TB"
+            except (ValueError, OSError):
+                return "0 bytes"
+        return "0 bytes"
 
 
 class CatalogueImage(TimeStampedModel):
