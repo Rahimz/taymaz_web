@@ -1,0 +1,63 @@
+{% extends "_base.html" %}
+
+{% block title %}
+  {{ page_title }}
+{% endblock title %}
+
+
+{% block content %}
+{% if catalogue %}
+{% for image in catalogue.images.all %}
+  <div>
+    <img src="{{ image.image.url }}" alt="" width="100%" height="auto">
+  </div>
+{% endfor %}
+{% comment %}
+<object data="{{ catalogue.file.url }}" type="application/pdf" width="100%" height="600px">
+  <p>It appears you don't have a PDF plugin for this browser. 
+    You can <a href="{{ catalogue.file.url }}">download the PDF file.</a></p>
+  </object>
+  
+<embed src="{{ catalogue.file.url }}" type="application/pdf" width="100%" height="600px">
+  
+
+    <iframe src="{{ catalogue.file.url }}" width="100%" height="600px" style="border: none;">
+      This browser does not support PDFs. Please download the PDF to view it: 
+      <a href="{{ catalogue.file.url }}">Download PDF</a>
+    </iframe>
+ 
+    <!-- Include PDF.js library -->
+<script src="//mozilla.github.io/pdf.js/build/pdf.js"></script>
+
+<canvas id="pdf-canvas"></canvas>
+
+<script>
+    // Set the PDF file URL
+    const url = "{{ catalogue.file.url }}";
+    
+    // Asynchronous download of PDF
+    pdfjsLib.getDocument(url).promise.then(function(pdf) {
+        // Fetch the first page
+        pdf.getPage(1).then(function(page) {
+            const scale = 1.5;
+            const viewport = page.getViewport({ scale: scale });
+
+            // Prepare canvas
+            const canvas = document.getElementById('pdf-canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            // Render PDF page into canvas context
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            page.render(renderContext);
+        });
+    });
+</script>
+{% endcomment %}
+{% endif %}
+  
+{% endblock content %}
