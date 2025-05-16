@@ -70,31 +70,68 @@ class CatalogueImage(TimeStampedModel):
 @receiver(post_save, sender=Catalogue)
 def create_images_from_pdf(sender, instance, created, **kwargs):
     if created and instance.file:
-        # Open the PDF file
-        pdf_file = fitz.open(instance.file.path)
+        try:
+            # Open the PDF file
+            pdf_file = fitz.open(instance.file.path)
+            
+            for page_num in range(len(pdf_file)):
+                try:
+                    # Get the page
+                    page = pdf_file.load_page(page_num)
+                    
+                    # Render page to an image (pix)
+                    pix = page.get_pixmap(dpi=instance.resolution)
+                    
+                    # Convert to PIL Image
+                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    
+                    # Create in-memory image file
+                    img_io = io.BytesIO()
+                    img.save(img_io, format='JPEG', quality=instance.quality)
+                    img_io.seek(0)
+                    
+                    # Create and save the CatalogueImage instance immediately
+                    img_name = f"{instance.name}_page_{page_num + 1}.jpg"
+                    CatalogueImage.objects.create(
+                        catalogue=instance,
+                        image=ContentFile(img_io.getvalue(), name=img_name),
+                        page=page_num + 1
+                    )
+                    
+                    # Explicitly clean up
+                    del img
+                    del pix
+                    del page
+                    img_io.close()
+                    
+                except Exception as page_error:
+                    print(f"Error processing page {page_num + 1}: {str(page_error)}")
+                    continue
+                        
+        except Exception as e:
+            print(f"Error processing PDF {instance.file.name}: {str(e)}")
+            # Consider adding some cleanup here if needed
+        #     # Get the page
+        #     page = pdf_file.load_page(page_num)
+            
+        #     # Render page to an image (pix)
+        #     pix = page.get_pixmap(dpi=instance.resolution)  # 300 DPI for good quality
+            
+        #     # Convert to PIL Image
+        #     img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            
+        #     # Save to BytesIO
+        #     img_io = io.BytesIO()
+        #     img.save(img_io, format='JPEG', quality=instance.quality)
+            
+        #     # Create the CatalogueImage instance
+        #     img_name = f"{instance.name}_page_{page_num + 1}_.jpg"
+        #     img_file = ContentFile(img_io.getvalue(), name=img_name)
+            
+        #     CatalogueImage.objects.create(
+        #         catalogue=instance,
+        #         image=img_file,
+        #         page=page_num + 1
+        #     )
         
-        for page_num in range(len(pdf_file)):
-            # Get the page
-            page = pdf_file.load_page(page_num)
-            
-            # Render page to an image (pix)
-            pix = page.get_pixmap(dpi=instance.resolution)  # 300 DPI for good quality
-            
-            # Convert to PIL Image
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            
-            # Save to BytesIO
-            img_io = io.BytesIO()
-            img.save(img_io, format='JPEG', quality=instance.quality)
-            
-            # Create the CatalogueImage instance
-            img_name = f"{instance.name}_page_{page_num + 1}_.jpg"
-            img_file = ContentFile(img_io.getvalue(), name=img_name)
-            
-            CatalogueImage.objects.create(
-                catalogue=instance,
-                image=img_file,
-                page=page_num + 1
-            )
-        
-        pdf_file.close()
+        # pdf_file.close()
